@@ -25,7 +25,7 @@
       <form class="mt-8 space-y-4" @submit.prevent="handleRegister">
         <div class="space-y-4 rounded-md">
           <div>
-            <label for="name" class="block text-sm font-medium text-slate-300 mb-1">Nama Lengkap</label>
+            <label for="name" class="block text-sm font-medium text-slate-300 mb-1">Username / Nama Pengguna</label>
             <input
               id="name"
               v-model="name"
@@ -33,7 +33,7 @@
               type="text"
               required
               class="appearance-none relative block w-full px-3 py-2 border border-slate-700 bg-slate-800/50 text-slate-100 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
-              placeholder="Masukkan nama lengkap Anda"
+              placeholder="Masukkan username Anda"
             />
           </div>
 
@@ -140,7 +140,7 @@ export default {
 
       try {
         const response = await api.post('/api/register', {
-          name: name.value,
+          username: name.value,
           email: email.value,
           password: password.value,
           password_confirmation: passwordConfirmation.value,

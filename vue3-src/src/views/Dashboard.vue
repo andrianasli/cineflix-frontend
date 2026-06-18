@@ -16,7 +16,7 @@
           
           <div class="flex items-center gap-4">
             <div class="hidden sm:block text-right">
-              <p class="text-sm font-medium text-slate-200">{{ currentUser?.name }}</p>
+              <p class="text-sm font-medium text-slate-200">{{ currentUser?.username }}</p>
               <p class="text-xs text-slate-400 capitalize">{{ currentUser?.role || 'User' }}</p>
             </div>
             <button 
