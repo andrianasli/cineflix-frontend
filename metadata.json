@@ -1,0 +1,6 @@
+{
+  "name": "CineTix Cinema System",
+  "description": "Sistem web manajemen bioskop CineTix untuk pemesanan tiket, jadwal, pembayaran, dan manajemen film.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
