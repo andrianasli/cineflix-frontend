@@ -207,11 +207,13 @@
 
 <script>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import api from '../services/api';
 
 export default {
   name: 'FilmCrud',
   setup() {
+    const router = useRouter();
     const films = ref([]);
     const isFetching = ref(true);
     const isLoading = ref(false);
@@ -336,7 +338,12 @@ export default {
     };
 
     onMounted(() => {
-      fetchFilms();
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user || user.role !== 'admin') {
+        router.push('/');
+      } else {
+        fetchFilms();
+      }
     });
 
     return {

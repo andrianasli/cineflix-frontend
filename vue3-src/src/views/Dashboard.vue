@@ -8,7 +8,7 @@
             <span class="text-2xl font-black tracking-wider text-red-500 uppercase">CineTix</span>
             <div class="hidden md:block ml-10 flex items-baseline space-x-4">
               <span class="px-3 py-2 rounded-md text-sm font-medium bg-red-600 text-white">Film Sedang Tayang</span>
-              <router-link to="/films-crud" class="px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800">
+              <router-link v-if="currentUser?.role === 'admin'" to="/films-crud" class="px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800">
                 Kelola Film (Admin)
               </router-link>
             </div>
