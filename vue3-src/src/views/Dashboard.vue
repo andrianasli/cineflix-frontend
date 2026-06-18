@@ -132,6 +132,66 @@
           </div>
         </div>
       </div>
+
+      <!-- Booking Modal -->
+      <div v-if="showBookingModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-6">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+            <h3 class="font-bold text-xl text-white">Booking Tiket</h3>
+            <button @click="closeBookingModal" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button>
+          </div>
+
+          <!-- Film Info -->
+          <div class="flex gap-4">
+            <img :src="bookingFilm.poster_url || 'https://images.unsplash.com/photo-1542204111-374baa1445b0?w=500'" class="w-20 h-28 object-cover rounded-lg border border-slate-800" />
+            <div>
+              <h4 class="font-bold text-base text-white line-clamp-2">{{ bookingFilm.title }}</h4>
+              <p class="text-xs text-slate-400 mt-1">{{ bookingFilm.genre }} | {{ bookingFilm.duration }} Mins</p>
+              <p class="text-xs text-red-500 font-bold mt-2">★ {{ bookingFilm.rating }}</p>
+            </div>
+          </div>
+
+          <!-- Select Schedule -->
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-slate-300">Pilih Jadwal Studio</label>
+            <div v-if="schedulesLoading" class="text-xs text-slate-400">Memuat jadwal...</div>
+            <div v-else-if="filteredSchedules.length === 0" class="text-xs text-red-400">Tidak ada jadwal tersedia untuk film ini.</div>
+            <select v-else v-model="selectedScheduleId" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:ring-red-500 focus:border-red-500">
+              <option value="">-- Pilih Jadwal --</option>
+              <option v-for="sch in filteredSchedules" :key="sch.schedule_id" :value="sch.schedule_id">
+                {{ sch.studio }} - {{ sch.show_time }} (Rp {{ parseFloat(sch.price).toLocaleString('id-ID') }})
+              </option>
+            </select>
+          </div>
+
+          <!-- Select Seats Count -->
+          <div v-if="selectedScheduleId" class="space-y-2">
+            <label class="block text-sm font-medium text-slate-300">Jumlah Kursi</label>
+            <input type="number" v-model.number="seatCount" min="1" max="10" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:ring-red-500 focus:border-red-500" />
+          </div>
+
+          <!-- Select Payment Method -->
+          <div v-if="selectedScheduleId" class="space-y-2">
+            <label class="block text-sm font-medium text-slate-300">Metode Pembayaran</label>
+            <select v-model="paymentMethod" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:ring-red-500 focus:border-red-500">
+              <option value="QRIS">QRIS</option>
+              <option value="Cash">Cash</option>
+              <option value="Transfer">Bank Transfer</option>
+            </select>
+          </div>
+
+          <!-- Pricing & Pay -->
+          <div v-if="selectedScheduleId" class="border-t border-slate-800 pt-4 flex items-center justify-between">
+            <div>
+              <p class="text-xs text-slate-400">Total Harga</p>
+              <p class="text-lg font-black text-white">Rp {{ (selectedSchedulePrice * seatCount).toLocaleString('id-ID') }}</p>
+            </div>
+            <button @click="processBooking" :disabled="bookingProcessing" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50 transition-all">
+              {{ bookingProcessing ? 'Memproses...' : 'Bayar Sekarang' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -207,8 +267,85 @@ export default {
       }
     };
 
+    // Reactive States for Booking Modal
+    const showBookingModal = ref(false);
+    const bookingFilm = ref(null);
+    const schedules = ref([]);
+    const schedulesLoading = ref(false);
+    const selectedScheduleId = ref('');
+    const seatCount = ref(1);
+    const paymentMethod = ref('QRIS');
+    const bookingProcessing = ref(false);
+
+    const fetchSchedules = async () => {
+      schedulesLoading.value = true;
+      try {
+        const response = await api.get('/api/schedules');
+        schedules.value = response.data;
+      } catch (error) {
+        console.error('Error fetching schedules:', error);
+      } finally {
+        schedulesLoading.value = false;
+      }
+    };
+
+    const filteredSchedules = computed(() => {
+      if (!bookingFilm.value) return [];
+      return schedules.value.filter(s => s.film_id === bookingFilm.value.id);
+    });
+
+    const selectedSchedulePrice = computed(() => {
+      const sch = schedules.value.find(s => s.schedule_id === Number(selectedScheduleId.value));
+      return sch ? parseFloat(sch.price) : 0;
+    });
+
     const beliTiket = (film) => {
-      alert(`Membuka sistem pemesanan tiket untuk film "${film.title}". Silakan hubungkan dengan halaman Schedule dan Seat-Selection sesuai tugas akhir Anda.`);
+      bookingFilm.value = film;
+      showBookingModal.value = true;
+      selectedScheduleId.value = '';
+      seatCount.value = 1;
+      fetchSchedules();
+    };
+
+    const closeBookingModal = () => {
+      showBookingModal.value = false;
+      bookingFilm.value = null;
+      selectedScheduleId.value = '';
+    };
+
+    const processBooking = async () => {
+      if (!selectedScheduleId.value) return;
+      bookingProcessing.value = true;
+      try {
+        const userId = currentUser.value?.user_id || 1;
+        const total = selectedSchedulePrice.value * seatCount.value;
+        
+        // 1. Post Booking
+        const bookingResponse = await api.post('/api/bookings', {
+          user_id: userId,
+          schedule_id: Number(selectedScheduleId.value),
+          seat_count: seatCount.value,
+          total_price: total,
+          status: 'Confirmed'
+        });
+
+        const newBookingId = bookingResponse.data.booking_id;
+
+        // 2. Post Payment
+        await api.post('/api/payments', {
+          booking_id: newBookingId,
+          payment_method: paymentMethod.value,
+          payment_status: 'Paid'
+        });
+
+        alert(`Pembayaran Sukses! Tiket film "${bookingFilm.value.title}" sejumlah ${seatCount.value} kursi berhasil dipesan.`);
+        closeBookingModal();
+      } catch (error) {
+        console.error('Error processing booking:', error);
+        alert('Gagal melakukan pemesanan tiket. Silakan coba lagi.');
+      } finally {
+        bookingProcessing.value = false;
+      }
     };
 
     const filteredFilms = computed(() => {
@@ -241,6 +378,17 @@ export default {
       filteredFilms,
       handleLogout,
       beliTiket,
+      showBookingModal,
+      bookingFilm,
+      schedulesLoading,
+      filteredSchedules,
+      selectedScheduleId,
+      seatCount,
+      paymentMethod,
+      bookingProcessing,
+      selectedSchedulePrice,
+      closeBookingModal,
+      processBooking
     };
   },
 };
