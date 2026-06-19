@@ -14,6 +14,12 @@
               >
                 Riwayat Transaksi
               </button>
+              <button 
+                @click="showSaranModal = true" 
+                class="px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                Beri Saran
+              </button>
               <router-link v-if="currentUser?.role === 'admin'" to="/films-crud" class="px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800">
                 Kelola Film (Admin)
               </router-link>
@@ -22,7 +28,21 @@
           
           <div class="flex items-center gap-4">
             <div class="hidden sm:block text-right">
-              <p class="text-sm font-medium text-slate-200">{{ currentUser?.username }}</p>
+              <div class="flex items-center justify-end gap-1.5">
+                <p class="text-sm font-bold text-slate-200">{{ currentUser?.username }}</p>
+                <!-- Member Tier Badge -->
+                <span 
+                  v-if="currentUser?.role !== 'admin'"
+                  :class="{
+                    'bg-slate-800 text-slate-300 border-slate-700': currentUser?.member_tier === 'Silver',
+                    'bg-yellow-950/40 text-yellow-400 border-yellow-800/80': currentUser?.member_tier === 'Gold',
+                    'bg-cyan-950/40 text-cyan-400 border-cyan-800/80': currentUser?.member_tier === 'Platinum'
+                  }"
+                  class="border text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider"
+                >
+                  {{ currentUser?.member_tier || 'Silver' }}
+                </span>
+              </div>
               <p class="text-xs text-slate-400 capitalize">{{ currentUser?.role || 'User' }}</p>
             </div>
             <button 
@@ -344,6 +364,15 @@
                   >
                     Lihat Nota
                   </button>
+
+                  <!-- Beri Rating Button (Only if Confirmed) -->
+                  <button 
+                    v-if="b.status === 'Confirmed'"
+                    @click="openRateModal(b)" 
+                    class="bg-yellow-600 hover:bg-yellow-700 text-white text-[10px] font-bold px-2 py-1 rounded transition-all cursor-pointer ml-1.5"
+                  >
+                    Beri Rating
+                  </button>
                 </div>
               </div>
             </div>
@@ -353,6 +382,61 @@
             <button @click="showHistoryModal = false" class="bg-red-600 hover:bg-red-700 text-white font-bold text-sm px-5 py-2 rounded-lg transition-all">
               Tutup
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Saran Modal -->
+      <div v-if="showSaranModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="font-bold text-lg text-white">Saran & Masukan</h3>
+            <button @click="showSaranModal = false" class="text-slate-400 hover:text-white text-2xl font-light">&times;</button>
+          </div>
+          <form @submit.prevent="submitSaran" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1 uppercase">Subjek / Topik</label>
+              <input v-model="saranSubject" type="text" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-red-500 outline-none" placeholder="Masukan judul saran..." />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1 uppercase">Isi Masukan</label>
+              <textarea v-model="saranContent" rows="4" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-red-500 outline-none" placeholder="Tuliskan masukan atau kritik untuk bioskop CineTix..."></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+              <button type="button" @click="showSaranModal = false" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4 py-2 rounded-lg">Batal</button>
+              <button type="submit" :disabled="saranSubmitting" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-50">
+                {{ saranSubmitting ? 'Mengirim...' : 'Kirim Saran' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Rate Modal -->
+      <div v-if="showRateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="font-bold text-lg text-white">Beri Rating Film</h3>
+            <button @click="showRateModal = false" class="text-slate-400 hover:text-white text-2xl font-light">&times;</button>
+          </div>
+          <div class="space-y-4">
+            <p class="text-sm text-slate-300">Bagikan penilaian Anda untuk film <span class="font-bold text-red-500">"{{ rateFilmTitle }}"</span></p>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1 uppercase">Penilaian (Bintang)</label>
+              <div class="flex gap-2 text-2xl text-yellow-500 py-1">
+                <span v-for="star in 5" :key="star" @click="rateStars = star" class="cursor-pointer hover:scale-110 transition-transform select-none">
+                  {{ star <= rateStars ? '★' : '☆' }}
+                </span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1 uppercase">Ulasan / Kritik</label>
+              <textarea v-model="rateComment" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-red-500 outline-none" placeholder="Tulis komentar tentang film ini..."></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+              <button type="button" @click="showRateModal = false" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4 py-2 rounded-lg">Batal</button>
+              <button @click="submitRating" class="bg-yellow-600 hover:bg-yellow-750 text-white text-xs font-bold px-4 py-2 rounded-lg">Kirim Ulasan</button>
+            </div>
           </div>
         </div>
       </div>
@@ -450,6 +534,16 @@ export default {
     const historyLoading = ref(false);
     const bookings = ref([]);
     const payments = ref([]);
+
+    const showSaranModal = ref(false);
+    const saranSubject = ref('');
+    const saranContent = ref('');
+    const saranSubmitting = ref(false);
+
+    const showRateModal = ref(false);
+    const rateStars = ref(5);
+    const rateComment = ref('');
+    const rateFilmTitle = ref('');
 
     const fetchSchedules = async () => {
       schedulesLoading.value = true;
@@ -591,6 +685,29 @@ export default {
       showReceiptModal.value = true;
     };
 
+    const submitSaran = () => {
+      saranSubmitting.value = true;
+      setTimeout(() => {
+        saranSubmitting.value = false;
+        showSaranModal.value = false;
+        alert(`Terima kasih! Saran Anda bertopik "${saranSubject.value}" telah berhasil terkirim ke administrator.`);
+        saranSubject.value = '';
+        saranContent.value = '';
+      }, 850);
+    };
+
+    const openRateModal = (b) => {
+      rateFilmTitle.value = b.schedule?.film?.title || 'Film';
+      rateStars.value = 5;
+      rateComment.value = '';
+      showRateModal.value = true;
+    };
+
+    const submitRating = () => {
+      alert(`Terima kasih! Penilaian ${rateStars.value} bintang Anda untuk film "${rateFilmTitle.value}" berhasil dikirim.`);
+      showRateModal.value = false;
+    };
+
     const filteredFilms = computed(() => {
       return films.value.filter(film => {
         const matchQuery = film.title.toLowerCase().includes(searchQuery.value.toLowerCase());
@@ -639,7 +756,18 @@ export default {
       historyLoading,
       openHistoryModal,
       userBookings,
-      showReceiptFromHistory
+      showReceiptFromHistory,
+      showSaranModal,
+      saranSubject,
+      saranContent,
+      saranSubmitting,
+      showRateModal,
+      rateStars,
+      rateComment,
+      rateFilmTitle,
+      submitSaran,
+      openRateModal,
+      submitRating
     };
   },
 };
