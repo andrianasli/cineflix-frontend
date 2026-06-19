@@ -22,6 +22,24 @@
         </button>
       </div>
 
+      <!-- Tab Switcher -->
+      <div class="flex gap-4 border-b border-slate-800 pb-4 mb-6">
+        <button 
+          @click="currentTab = 'films'" 
+          :class="currentTab === 'films' ? 'bg-red-600 text-white font-bold' : 'bg-slate-900 hover:bg-slate-800 text-slate-300'"
+          class="px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+        >
+          Katalog Film (Master)
+        </button>
+        <button 
+          @click="switchToTransactionsTab" 
+          :class="currentTab === 'transactions' ? 'bg-red-600 text-white font-bold' : 'bg-slate-900 hover:bg-slate-800 text-slate-300'"
+          class="px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+        >
+          Riwayat Penjualan Tiket (Transaksi)
+        </button>
+      </div>
+
       <!-- Statistik Panel -->
       <div v-if="!statsLoading && statistics" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <!-- Card Total Pendapatan -->
@@ -172,7 +190,7 @@
       </div>
 
       <!-- Grid/Table List Film -->
-      <div v-else>
+      <div v-else-if="currentTab === 'films'">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
@@ -232,6 +250,105 @@
         </div>
       </div>
 
+      <!-- Grid/Table List Transaksi -->
+      <div v-else-if="currentTab === 'transactions'">
+        <div v-if="transactionsLoading" class="flex flex-col items-center justify-center py-20">
+          <svg class="animate-spin h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p class="text-slate-400 text-xs mt-3">Mengambil data transaksi penjualan...</p>
+        </div>
+
+        <div v-else class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-900 border-b border-slate-800">
+                  <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">ID Booking</th>
+                  <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Pelanggan</th>
+                  <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Film & Studio</th>
+                  <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Tiket</th>
+                  <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Total Harga</th>
+                  <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Pembayaran</th>
+                  <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <tr v-for="t in mappedTransactions" :key="t.booking_id" class="hover:bg-slate-800/30 transition-all">
+                  <td class="px-6 py-4 font-mono text-xs font-bold text-slate-400">#{{ t.booking_id }}</td>
+                  <td class="px-6 py-4">
+                    <p class="text-sm font-bold text-white">{{ t.user?.username || 'Guest' }}</p>
+                    <p class="text-xs text-slate-500">{{ t.user?.email || '-' }}</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <p class="text-sm font-medium text-slate-200">{{ t.schedule?.film?.title || 'Film Terhapus' }}</p>
+                    <p class="text-xs text-slate-500 font-mono">{{ t.schedule?.studio || 'Studio' }} - {{ t.schedule?.show_time }}</p>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-slate-300 font-mono">{{ t.seat_count }} Kursi</td>
+                  <td class="px-6 py-4 text-sm text-green-400 font-mono font-bold">
+                    Rp {{ parseFloat(t.total_price).toLocaleString('id-ID') }}
+                  </td>
+                  <td class="px-6 py-4 text-xs">
+                    <span class="bg-slate-800 border border-slate-700 text-slate-300 px-2 py-0.5 rounded uppercase font-bold text-[10px]">
+                      {{ t.payment_method }}
+                    </span>
+                    <span 
+                      :class="t.payment_status === 'Paid' ? 'text-green-400 border-green-950 bg-green-950/20' : 'text-amber-400 border-amber-950 bg-amber-950/20'" 
+                      class="ml-1.5 border px-1.5 py-0.5 rounded font-bold text-[9px]"
+                    >
+                      {{ t.payment_status }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 text-xs">
+                    <span 
+                      :class="{
+                        'bg-green-950/60 border-green-800 text-green-400': t.status === 'Confirmed',
+                        'bg-amber-950/60 border-amber-800 text-amber-400': t.status === 'Pending',
+                        'bg-red-950/60 border-red-800 text-red-400': t.status === 'Cancelled'
+                      }"
+                      class="border px-2 py-0.5 rounded text-[10px] uppercase font-bold"
+                    >
+                      {{ t.status }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end gap-2">
+                      <button 
+                        v-if="t.status === 'Pending'"
+                        @click="updateBookingStatus(t.booking_id, 'Confirmed')" 
+                        class="bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold px-2 py-1 rounded transition-all cursor-pointer"
+                      >
+                        Konfirmasi
+                      </button>
+                      <button 
+                        v-if="t.status === 'Pending' || t.status === 'Confirmed'"
+                        @click="updateBookingStatus(t.booking_id, 'Cancelled')" 
+                        class="bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold px-2 py-1 rounded transition-all cursor-pointer"
+                      >
+                        Batalkan
+                      </button>
+                      <button 
+                        @click="deleteBooking(t.booking_id)" 
+                        class="bg-red-950 hover:bg-red-600/20 text-red-400 hover:text-white border border-red-900/50 text-[10px] font-bold px-2 py-1 rounded transition-all cursor-pointer"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="mappedTransactions.length === 0">
+                  <td colspan="8" class="text-center py-12 text-slate-500 text-sm">
+                    Belum ada riwayat transaksi masuk.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
@@ -254,6 +371,11 @@ export default {
 
     const statistics = ref(null);
     const statsLoading = ref(true);
+
+    const currentTab = ref('films');
+    const bookings = ref([]);
+    const payments = ref([]);
+    const transactionsLoading = ref(false);
 
     const alertMessage = ref('');
     const alertClass = ref('');
@@ -413,6 +535,69 @@ export default {
       }
     });
 
+    const fetchTransactions = async () => {
+      transactionsLoading.value = true;
+      try {
+        const [bookingsRes, paymentsRes] = await Promise.all([
+          api.get('/api/bookings'),
+          api.get('/api/payments')
+        ]);
+        bookings.value = bookingsRes.data;
+        payments.value = paymentsRes.data;
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+      } finally {
+        transactionsLoading.value = false;
+      }
+    };
+
+    const switchToTransactionsTab = () => {
+      currentTab.value = 'transactions';
+      fetchTransactions();
+    };
+
+    const mappedTransactions = computed(() => {
+      return bookings.value.map(b => {
+        const pay = payments.value.find(p => p.booking_id === b.booking_id);
+        return {
+          ...b,
+          payment_method: pay ? pay.payment_method : '-',
+          payment_status: pay ? pay.payment_status : '-'
+        };
+      }).sort((a, b) => b.booking_id - a.booking_id);
+    });
+
+    const updateBookingStatus = async (bookingId, newStatus) => {
+      try {
+        await api.put(`/api/bookings/${bookingId}`, { status: newStatus });
+        triggerAlert(`Status transaksi #${bookingId} berhasil diperbarui menjadi ${newStatus}.`);
+        
+        const pay = payments.value.find(p => p.booking_id === bookingId);
+        if (pay && newStatus === 'Confirmed') {
+          // Update corresponding payment to Paid
+          await api.put(`/api/payments/${pay.payment_id}`, { payment_status: 'Paid' });
+        }
+        fetchTransactions();
+        fetchStatistics(); // Update top cards stats too!
+      } catch (error) {
+        console.error('Error updating status:', error);
+        triggerAlert('Gagal mengubah status transaksi.', 'danger');
+      }
+    };
+
+    const deleteBooking = async (bookingId) => {
+      if (!confirm(`Apakah Anda yakin ingin menghapus transaksi #${bookingId}?`)) return;
+      try {
+        await api.delete(`/api/bookings/${bookingId}`);
+        triggerAlert(`Transaksi #${bookingId} berhasil dihapus.`);
+        fetchTransactions();
+        fetchStatistics(); // Update top cards stats too!
+      } catch (error) {
+        console.error('Error deleting booking:', error);
+        triggerAlert('Gagal menghapus transaksi.', 'danger');
+      }
+    };
+
     return {
       films,
       isFetching,
@@ -432,6 +617,12 @@ export default {
       totalBookingsCount,
       popularFilm,
       topPaymentMethod,
+      currentTab,
+      transactionsLoading,
+      switchToTransactionsTab,
+      mappedTransactions,
+      updateBookingStatus,
+      deleteBooking,
     };
   },
 };
