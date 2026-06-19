@@ -198,8 +198,13 @@
               :alt="film.title"
               class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            <div class="absolute top-2 right-2 bg-slate-950/80 backdrop-blur-md text-red-500 font-bold px-2 py-0.5 rounded text-xs">
-              ★ {{ film.rating || '8.5' }}
+            <div class="absolute top-2 right-2 bg-slate-950/80 backdrop-blur-md text-yellow-500 font-bold px-2 py-1 rounded-lg text-[10px] flex items-center gap-1 select-none">
+              <span class="flex text-yellow-500">
+                <span v-for="star in 5" :key="star">
+                  {{ star <= Math.round(parseFloat(film.rating || 8.5) / 2) ? '★' : '☆' }}
+                </span>
+              </span>
+              <span class="text-[9px] text-slate-400 font-mono">({{ film.rating || '8.5' }})</span>
             </div>
             <div class="absolute bottom-2 left-2 bg-slate-950/80 backdrop-blur-md text-slate-300 px-2.5 py-0.5 rounded text-xs font-semibold">
               {{ film.genre }}
@@ -214,7 +219,7 @@
               <div class="flex items-center gap-1 mt-1">
                 <div class="flex text-yellow-500 text-xs select-none">
                   <span v-for="star in 5" :key="star">
-                    {{ star <= Math.round((film.rating || 8.5) / 2) ? '★' : '☆' }}
+                    {{ star <= Math.round(parseFloat(film.rating || 8.5) / 2) ? '★' : '☆' }}
                   </span>
                 </div>
                 <span class="text-[10px] text-slate-500 font-bold font-mono">({{ film.rating || '8.5' }}/10)</span>
@@ -255,7 +260,7 @@
               <div class="flex items-center gap-1 mt-2">
                 <div class="flex text-yellow-500 text-xs select-none">
                   <span v-for="star in 5" :key="star">
-                    {{ star <= Math.round((bookingFilm.rating || 8.5) / 2) ? '★' : '☆' }}
+                    {{ star <= Math.round(parseFloat(bookingFilm.rating || 8.5) / 2) ? '★' : '☆' }}
                   </span>
                 </div>
                 <span class="text-[10px] text-slate-400 font-bold font-mono">({{ bookingFilm.rating }}/10)</span>
@@ -345,7 +350,7 @@
                     {{ receiptData.showTime }} | Rating: 
                     <span class="flex text-yellow-500 text-[10px] select-none">
                       <span v-for="star in 5" :key="star">
-                        {{ star <= Math.round((receiptData.rating || 8.5) / 2) ? '★' : '☆' }}
+                        {{ star <= Math.round(parseFloat(receiptData.rating || 8.5) / 2) ? '★' : '☆' }}
                       </span>
                     </span>
                     <span class="text-[9px] text-slate-500 font-bold font-mono">({{ receiptData.rating }}/10)</span>
@@ -433,7 +438,7 @@
                     Waktu: {{ b.schedule?.show_time || '-' }} | Rating: 
                     <span class="flex text-yellow-500 text-[10px] select-none">
                       <span v-for="star in 5" :key="star">
-                        {{ star <= Math.round((b.schedule?.film?.rating || 8.5) / 2) ? '★' : '☆' }}
+                        {{ star <= Math.round(parseFloat(b.schedule?.film?.rating || 8.5) / 2) ? '★' : '☆' }}
                       </span>
                     </span>
                     <span class="text-[9px] text-slate-500 font-bold font-mono">({{ b.schedule?.film?.rating || '8.5' }}/10)</span>
@@ -648,6 +653,7 @@ export default {
     const rateStars = ref(5);
     const rateComment = ref('');
     const rateFilmTitle = ref('');
+    const rateFilmId = ref(null);
 
     const fetchSchedules = async () => {
       schedulesLoading.value = true;
@@ -805,15 +811,27 @@ export default {
     };
 
     const openRateModal = (b) => {
+      rateFilmId.value = b.schedule?.film?.id || null;
       rateFilmTitle.value = b.schedule?.film?.title || 'Film';
       rateStars.value = 5;
       rateComment.value = '';
       showRateModal.value = true;
     };
 
-    const submitRating = () => {
-      alert(`Terima kasih! Penilaian ${rateStars.value} bintang Anda untuk film "${rateFilmTitle.value}" berhasil dikirim.`);
-      showRateModal.value = false;
+    const submitRating = async () => {
+      if (!rateFilmId.value) return;
+      try {
+        await api.post(`/api/films/${rateFilmId.value}/rate`, {
+          stars: rateStars.value,
+          comment: rateComment.value
+        });
+        alert(`Terima kasih! Penilaian ${rateStars.value} bintang Anda untuk film "${rateFilmTitle.value}" berhasil dikirim.`);
+        showRateModal.value = false;
+        fetchFilms(); // Refresh rating on page
+      } catch (error) {
+        console.error('Error submitting rating:', error);
+        alert('Gagal mengirimkan rating. Silakan coba lagi.');
+      }
     };
 
     const openHistoryModalMobile = () => {
@@ -883,6 +901,7 @@ export default {
       rateStars,
       rateComment,
       rateFilmTitle,
+      rateFilmId,
       submitSaran,
       openRateModal,
       submitRating,

@@ -219,7 +219,16 @@
                     </span>
                   </td>
                   <td class="px-6 py-4 text-sm text-slate-300 font-mono">{{ film.duration }} Mins</td>
-                  <td class="px-6 py-4 text-yellow-500 font-semibold text-sm">★ {{ film.rating }}</td>
+                  <td class="px-6 py-4">
+                    <div class="flex items-center gap-1.5">
+                      <div class="flex text-yellow-500 text-xs select-none">
+                        <span v-for="star in 5" :key="star">
+                          {{ star <= Math.round(parseFloat(film.rating || 8.5) / 2) ? '★' : '☆' }}
+                        </span>
+                      </div>
+                      <span class="text-xs text-slate-400 font-mono">({{ film.rating }})</span>
+                    </div>
+                  </td>
                   <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
                       <button 
