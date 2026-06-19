@@ -15,10 +15,11 @@
         </div>
 
         <button 
-          @click="openAddModal" 
-          class="bg-red-600 hover:bg-red-700 text-white font-bold text-sm px-4 py-2.5 rounded-lg transition-all"
+          disabled
+          class="bg-slate-800 text-slate-500 font-bold text-sm px-4 py-2.5 rounded-lg border border-slate-700 cursor-not-allowed transition-all"
+          title="Fitur tambah film baru dinonaktifkan sementara"
         >
-          + Tambah Film Baru
+          + Tambah Film Baru (Disabled)
         </button>
       </div>
 
@@ -437,17 +438,7 @@ export default {
     };
 
     const openAddModal = () => {
-      isEditing.value = false;
-      editId.value = null;
-      form.value = {
-        title: '',
-        genre: 'Action',
-        duration: 120,
-        poster_url: '',
-        synopsis: '',
-        rating: 8.0,
-      };
-      showModal.value = true;
+      triggerAlert('Maaf, fitur menambahkan film baru dinonaktifkan sementara.', 'error');
     };
 
     const editFilm = (film) => {
@@ -478,8 +469,9 @@ export default {
           await api.put(`/api/films/${editId.value}`, form.value);
           triggerAlert('Data film berhasil diperbarui.');
         } else {
-          await api.post('/api/films', form.value);
-          triggerAlert('Film baru berhasil ditambahkan ke sistem CineTix.');
+          triggerAlert('Maaf, fitur menambahkan film baru dinonaktifkan sementara.', 'error');
+          showModal.value = false;
+          return;
         }
         showModal.value = false;
         fetchFilms();
@@ -492,9 +484,9 @@ export default {
           }
           triggerAlert('Data visual berhasil diperbarui (Simulasi Offline).');
         } else {
-          const newId = films.value.length ? Math.max(...films.value.map(f => f.id)) + 1 : 1;
-          films.value.push({ id: newId, ...form.value });
-          triggerAlert('Film baru berhasil ditambahkan (Simulasi Offline).');
+          triggerAlert('Maaf, fitur menambahkan film baru dinonaktifkan sementara.', 'error');
+          showModal.value = false;
+          return;
         }
         showModal.value = false;
       } finally {
