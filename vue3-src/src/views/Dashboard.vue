@@ -211,7 +211,10 @@ export default {
     const currentUser = ref(null);
     const router = useRouter();
 
-    const genres = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance', 'Thriller', 'Animation'];
+    const genres = computed(() => {
+      const list = films.value.map(film => film.genre).filter(Boolean);
+      return [...new Set(list)].sort();
+    });
 
     const fetchFilms = async () => {
       isLoading.value = true;

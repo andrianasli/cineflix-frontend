@@ -258,7 +258,7 @@ export default {
     const alertMessage = ref('');
     const alertClass = ref('');
 
-    const genres = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance', 'Thriller', 'Animation'];
+    const genres = ['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance', 'Thriller', 'Animation', 'Crime', 'Adventure', 'Fantasy'];
 
     const form = ref({
       title: '',
