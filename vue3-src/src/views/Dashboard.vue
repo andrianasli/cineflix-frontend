@@ -192,6 +192,81 @@
           </div>
         </div>
       </div>
+
+      <!-- Receipt / Nota Modal -->
+      <div v-if="showReceiptModal && receiptData" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-6 relative overflow-hidden">
+          <!-- Receipt Decorative Header -->
+          <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-600 via-orange-500 to-green-500"></div>
+          
+          <div class="text-center pt-2">
+            <span class="text-2xl font-black tracking-wider text-red-500 uppercase">CineTix Receipt</span>
+            <p class="text-xs text-slate-400 mt-1">Bukti Transaksi Pembayaran Resmi</p>
+          </div>
+
+          <!-- Divider -->
+          <div class="border-b border-dashed border-slate-700 py-1"></div>
+
+          <!-- Transaction details -->
+          <div class="space-y-4">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">ID Transaksi (Booking):</span>
+              <span class="font-mono font-bold text-white">#{{ receiptData.bookingId }}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">Tanggal & Waktu:</span>
+              <span class="text-white">{{ receiptData.dateTime }}</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">Nama Pelanggan:</span>
+              <span class="text-white font-medium">{{ currentUser?.username }}</span>
+            </div>
+            
+            <div class="border-t border-slate-800 pt-3">
+              <span class="text-xs text-slate-400 block uppercase font-bold tracking-wider">Detail Tiket</span>
+              <div class="mt-2 flex gap-3">
+                <img :src="receiptData.posterUrl || 'https://images.unsplash.com/photo-1542204111-374baa1445b0?w=500'" class="w-12 h-16 object-cover rounded border border-slate-800" />
+                <div>
+                  <h4 class="font-bold text-sm text-white line-clamp-1">{{ receiptData.title }}</h4>
+                  <p class="text-xs text-slate-400">{{ receiptData.studio }}</p>
+                  <p class="text-xs text-slate-400 font-mono">{{ receiptData.showTime }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-3 space-y-2">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-400">Jumlah Kursi:</span>
+                <span class="text-white font-bold">{{ receiptData.seatCount }} Kursi</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-400">Metode Pembayaran:</span>
+                <span class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[10px] uppercase font-bold">{{ receiptData.paymentMethod }}</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-400">Status Pembayaran:</span>
+                <span class="bg-green-950/60 border border-green-800 text-green-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold">Lunas / Paid</span>
+              </div>
+            </div>
+
+            <!-- Total Price -->
+            <div class="border-t border-dashed border-slate-700 pt-4 flex justify-between items-center">
+              <span class="text-sm font-bold text-white">TOTAL BAYAR</span>
+              <span class="text-xl font-black text-green-400">Rp {{ receiptData.totalPrice.toLocaleString('id-ID') }}</span>
+            </div>
+          </div>
+
+          <!-- Receipt Footer / Button -->
+          <div class="pt-4 flex gap-3">
+            <button @click="printReceipt" class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all">
+              Cetak / Simpan PDF
+            </button>
+            <button @click="showReceiptModal = false" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg text-xs font-bold transition-all">
+              Selesai & Tutup
+            </button>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -279,6 +354,8 @@ export default {
     const seatCount = ref(1);
     const paymentMethod = ref('QRIS');
     const bookingProcessing = ref(false);
+    const showReceiptModal = ref(false);
+    const receiptData = ref(null);
 
     const fetchSchedules = async () => {
       schedulesLoading.value = true;
@@ -341,7 +418,21 @@ export default {
           payment_status: 'Paid'
         });
 
-        alert(`Pembayaran Sukses! Tiket film "${bookingFilm.value.title}" sejumlah ${seatCount.value} kursi berhasil dipesan.`);
+        // Set Receipt Data
+        const selectedSch = schedules.value.find(s => s.schedule_id === Number(selectedScheduleId.value));
+        receiptData.value = {
+          bookingId: newBookingId,
+          dateTime: new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }),
+          title: bookingFilm.value.title,
+          posterUrl: bookingFilm.value.poster_url,
+          studio: selectedSch ? selectedSch.studio : 'Studio 1',
+          showTime: selectedSch ? selectedSch.show_time : '',
+          seatCount: seatCount.value,
+          paymentMethod: paymentMethod.value,
+          totalPrice: total
+        };
+
+        showReceiptModal.value = true;
         closeBookingModal();
       } catch (error) {
         console.error('Error processing booking:', error);
@@ -349,6 +440,10 @@ export default {
       } finally {
         bookingProcessing.value = false;
       }
+    };
+
+    const printReceipt = () => {
+      window.print();
     };
 
     const filteredFilms = computed(() => {
@@ -391,7 +486,10 @@ export default {
       bookingProcessing,
       selectedSchedulePrice,
       closeBookingModal,
-      processBooking
+      processBooking,
+      showReceiptModal,
+      receiptData,
+      printReceipt
     };
   },
 };
