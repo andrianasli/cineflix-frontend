@@ -15,11 +15,10 @@
         </div>
 
         <button 
-          disabled
-          class="bg-slate-800 text-slate-500 font-bold text-sm px-4 py-2.5 rounded-lg border border-slate-700 cursor-not-allowed transition-all"
-          title="Fitur tambah film baru dinonaktifkan sementara"
+          @click="openAddModal" 
+          class="bg-red-600 hover:bg-red-700 text-white font-bold text-sm px-4 py-2.5 rounded-lg transition-all"
         >
-          + Tambah Film Baru (Disabled)
+          + Tambah Film Baru
         </button>
       </div>
 
@@ -438,7 +437,17 @@ export default {
     };
 
     const openAddModal = () => {
-      triggerAlert('Maaf, fitur menambahkan film baru dinonaktifkan sementara.', 'error');
+      isEditing.value = false;
+      editId.value = null;
+      form.value = {
+        title: '',
+        genre: 'Action',
+        duration: 120,
+        poster_url: '',
+        synopsis: '',
+        rating: 8.0,
+      };
+      showModal.value = true;
     };
 
     const editFilm = (film) => {
@@ -469,9 +478,8 @@ export default {
           await api.put(`/api/films/${editId.value}`, form.value);
           triggerAlert('Data film berhasil diperbarui.');
         } else {
-          triggerAlert('Maaf, fitur menambahkan film baru dinonaktifkan sementara.', 'error');
-          showModal.value = false;
-          return;
+          await api.post('/api/films', form.value);
+          triggerAlert('Film baru berhasil ditambahkan ke sistem CineTix.');
         }
         showModal.value = false;
         fetchFilms();
@@ -484,9 +492,9 @@ export default {
           }
           triggerAlert('Data visual berhasil diperbarui (Simulasi Offline).');
         } else {
-          triggerAlert('Maaf, fitur menambahkan film baru dinonaktifkan sementara.', 'error');
-          showModal.value = false;
-          return;
+          const newId = films.value.length ? Math.max(...films.value.map(f => f.id)) + 1 : 1;
+          films.value.push({ id: newId, ...form.value });
+          triggerAlert('Film baru berhasil ditambahkan (Simulasi Offline).');
         }
         showModal.value = false;
       } finally {
