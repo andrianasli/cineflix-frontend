@@ -211,7 +211,15 @@
               <h3 class="font-bold text-lg text-white tracking-tight group-hover:text-red-400 transition-colors line-clamp-1">
                 {{ film.title }}
               </h3>
-              <p class="text-xs text-slate-500 mt-1 font-medium">Batas Usia: 13+ | {{ film.duration }} Mins</p>
+              <div class="flex items-center gap-1 mt-1">
+                <div class="flex text-yellow-500 text-xs select-none">
+                  <span v-for="star in 5" :key="star">
+                    {{ star <= Math.round((film.rating || 8.5) / 2) ? '★' : '☆' }}
+                  </span>
+                </div>
+                <span class="text-[10px] text-slate-500 font-bold font-mono">({{ film.rating || '8.5' }}/10)</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1.5 font-medium">Batas Usia: 13+ | {{ film.duration }} Mins</p>
               <p class="text-xs text-slate-400 mt-2 line-clamp-3">
                 {{ film.synopsis || 'Sinopsis film belum ditambahkan untuk judul rilis ini.' }}
               </p>
@@ -244,7 +252,14 @@
             <div>
               <h4 class="font-bold text-base text-white line-clamp-2">{{ bookingFilm.title }}</h4>
               <p class="text-xs text-slate-400 mt-1">{{ bookingFilm.genre }} | {{ bookingFilm.duration }} Mins</p>
-              <p class="text-xs text-red-500 font-bold mt-2">★ {{ bookingFilm.rating }}</p>
+              <div class="flex items-center gap-1 mt-2">
+                <div class="flex text-yellow-500 text-xs select-none">
+                  <span v-for="star in 5" :key="star">
+                    {{ star <= Math.round((bookingFilm.rating || 8.5) / 2) ? '★' : '☆' }}
+                  </span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-bold font-mono">({{ bookingFilm.rating }}/10)</span>
+              </div>
             </div>
           </div>
 
@@ -326,7 +341,15 @@
                 <div>
                   <h4 class="font-bold text-sm text-white line-clamp-1">{{ receiptData.title }}</h4>
                   <p class="text-xs text-slate-400">{{ receiptData.studio }} | Durasi: {{ receiptData.duration }} Mins</p>
-                  <p class="text-xs text-slate-400 font-mono">{{ receiptData.showTime }} | Rating: ★ {{ receiptData.rating }}</p>
+                  <p class="text-xs text-slate-400 font-mono flex items-center gap-1">
+                    {{ receiptData.showTime }} | Rating: 
+                    <span class="flex text-yellow-500 text-[10px] select-none">
+                      <span v-for="star in 5" :key="star">
+                        {{ star <= Math.round((receiptData.rating || 8.5) / 2) ? '★' : '☆' }}
+                      </span>
+                    </span>
+                    <span class="text-[9px] text-slate-500 font-bold font-mono">({{ receiptData.rating }}/10)</span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -406,7 +429,15 @@
                 <div>
                   <h4 class="font-bold text-sm text-white">{{ b.schedule?.film?.title || 'Film Terhapus' }}</h4>
                   <p class="text-xs text-slate-400 mt-0.5">{{ b.schedule?.studio || 'Studio' }} | {{ b.seat_count }} Kursi | Durasi: {{ b.schedule?.film?.duration || 120 }} Mins</p>
-                  <p class="text-[10px] text-slate-500 font-mono mt-1">Waktu: {{ b.schedule?.show_time || '-' }} | Rating: ★ {{ b.schedule?.film?.rating || '8.5' }}</p>
+                  <p class="text-[10px] text-slate-500 font-mono mt-1 flex items-center gap-1">
+                    Waktu: {{ b.schedule?.show_time || '-' }} | Rating: 
+                    <span class="flex text-yellow-500 text-[10px] select-none">
+                      <span v-for="star in 5" :key="star">
+                        {{ star <= Math.round((b.schedule?.film?.rating || 8.5) / 2) ? '★' : '☆' }}
+                      </span>
+                    </span>
+                    <span class="text-[9px] text-slate-500 font-bold font-mono">({{ b.schedule?.film?.rating || '8.5' }}/10)</span>
+                  </p>
                 </div>
               </div>
 
