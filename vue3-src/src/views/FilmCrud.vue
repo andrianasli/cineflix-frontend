@@ -22,6 +22,37 @@
         </button>
       </div>
 
+      <!-- Statistik Panel -->
+      <div v-if="!statsLoading && statistics" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <!-- Card Total Pendapatan -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-red-500/30 transition-all duration-300">
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Pendapatan</p>
+          <p class="text-2xl font-black text-white mt-2">Rp {{ statistics.total_revenue.toLocaleString('id-ID') }}</p>
+          <p class="text-xs text-slate-500 mt-1">Akumulasi penjualan tiket</p>
+        </div>
+
+        <!-- Card Total Transaksi -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-red-500/30 transition-all duration-300">
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Transaksi</p>
+          <p class="text-2xl font-black text-white mt-2">{{ totalBookingsCount }} Tiket</p>
+          <p class="text-xs text-slate-500 mt-1">Confirmed & Pending</p>
+        </div>
+
+        <!-- Card Film Terpopuler -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-red-500/30 transition-all duration-300">
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Film Terpopuler</p>
+          <p class="text-lg font-black text-white mt-2 truncate">{{ popularFilm.title }}</p>
+          <p class="text-xs text-slate-500 mt-1">{{ popularFilm.total_bookings }} Booking tiket</p>
+        </div>
+
+        <!-- Card Metode Pembayaran -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-red-500/30 transition-all duration-300">
+          <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Metode Terlaris</p>
+          <p class="text-lg font-black text-white mt-2">{{ topPaymentMethod }}</p>
+          <p class="text-xs text-slate-500 mt-1">Pilihan utama pelanggan</p>
+        </div>
+      </div>
+
       <!-- Alert Status -->
       <div v-if="alertMessage" :class="alertClass" class="mb-6 p-4 rounded-lg border text-sm text-center">
         {{ alertMessage }}
@@ -206,7 +237,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '../services/api';
 
@@ -220,6 +251,9 @@ export default {
     const showModal = ref(false);
     const isEditing = ref(false);
     const editId = ref(null);
+
+    const statistics = ref(null);
+    const statsLoading = ref(true);
 
     const alertMessage = ref('');
     const alertClass = ref('');
@@ -337,12 +371,45 @@ export default {
       }
     };
 
+    const fetchStatistics = async () => {
+      statsLoading.value = true;
+      try {
+        const response = await api.get('/api/statistics');
+        statistics.value = response.data;
+      } catch (error) {
+        console.error('Error fetching statistics:', error);
+      } finally {
+        statsLoading.value = false;
+      }
+    };
+
+    const totalBookingsCount = computed(() => {
+      if (!statistics.value || !statistics.value.booking_status) return 0;
+      return statistics.value.booking_status.reduce((sum, item) => sum + item.count, 0);
+    });
+
+    const popularFilm = computed(() => {
+      if (!statistics.value || !statistics.value.bookings_per_film || statistics.value.bookings_per_film.length === 0) {
+        return { title: '-', total_bookings: 0 };
+      }
+      return statistics.value.bookings_per_film.reduce((max, item) => item.total_bookings > max.total_bookings ? item : max, { title: '-', total_bookings: 0 });
+    });
+
+    const topPaymentMethod = computed(() => {
+      if (!statistics.value || !statistics.value.payment_methods || statistics.value.payment_methods.length === 0) {
+        return '-';
+      }
+      const top = statistics.value.payment_methods.reduce((max, item) => item.count > max.count ? item : max, { payment_method: '-', count: 0 });
+      return `${top.payment_method} (${top.count})`;
+    });
+
     onMounted(() => {
       const user = JSON.parse(localStorage.getItem('user'));
       if (!user || user.role !== 'admin') {
         router.push('/');
       } else {
         fetchFilms();
+        fetchStatistics();
       }
     });
 
@@ -360,6 +427,11 @@ export default {
       editFilm,
       deleteFilm,
       submitForm,
+      statistics,
+      statsLoading,
+      totalBookingsCount,
+      popularFilm,
+      topPaymentMethod,
     };
   },
 };
