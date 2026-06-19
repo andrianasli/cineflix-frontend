@@ -8,6 +8,12 @@
             <span class="text-2xl font-black tracking-wider text-red-500 uppercase">CineTix</span>
             <div class="hidden md:block ml-10 flex items-baseline space-x-4">
               <span class="px-3 py-2 rounded-md text-sm font-medium bg-red-600 text-white">Film Sedang Tayang</span>
+              <button 
+                @click="openHistoryModal" 
+                class="px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                Riwayat Transaksi
+              </button>
               <router-link v-if="currentUser?.role === 'admin'" to="/films-crud" class="px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800">
                 Kelola Film (Admin)
               </router-link>
@@ -267,6 +273,89 @@
           </div>
         </div>
       </div>
+
+      <!-- History / Riwayat Transaksi Modal -->
+      <div v-if="showHistoryModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-6 flex flex-col max-h-[85vh]">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div>
+              <h3 class="font-bold text-xl text-white">Riwayat Transaksi</h3>
+              <p class="text-xs text-slate-400 mt-1">Daftar tiket bioskop yang pernah Anda pesan</p>
+            </div>
+            <button @click="showHistoryModal = false" class="text-slate-400 hover:text-white font-bold text-2xl">&times;</button>
+          </div>
+
+          <!-- Loading State -->
+          <div v-if="historyLoading" class="flex flex-col items-center justify-center py-12 space-y-3">
+            <svg class="animate-spin h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-xs text-slate-400">Memuat riwayat transaksi...</p>
+          </div>
+
+          <!-- Empty State -->
+          <div v-else-if="userBookings.length === 0" class="text-center py-16 text-slate-500">
+            <p class="text-sm font-medium">Anda belum memiliki riwayat pemesanan tiket.</p>
+            <p class="text-xs mt-1">Mulai memesan kursi dari katalog film kami!</p>
+          </div>
+
+          <!-- Bookings List -->
+          <div v-else class="flex-1 overflow-y-auto space-y-4 pr-1">
+            <div 
+              v-for="b in userBookings" 
+              :key="b.booking_id" 
+              class="bg-slate-950/40 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-slate-700 transition-all"
+            >
+              <div class="flex gap-4">
+                <img 
+                  :src="b.schedule?.film?.poster_url || 'https://images.unsplash.com/photo-1542204111-374baa1445b0?w=500'" 
+                  class="w-12 h-16 object-cover rounded border border-slate-800" 
+                />
+                <div>
+                  <h4 class="font-bold text-sm text-white">{{ b.schedule?.film?.title || 'Film Terhapus' }}</h4>
+                  <p class="text-xs text-slate-400 mt-0.5">{{ b.schedule?.studio || 'Studio' }} | {{ b.seat_count }} Kursi</p>
+                  <p class="text-[10px] text-slate-500 font-mono mt-1">Waktu: {{ b.schedule?.show_time || '-' }}</p>
+                </div>
+              </div>
+
+              <div class="flex sm:flex-col items-start sm:items-end justify-between sm:justify-center gap-2">
+                <div class="text-right">
+                  <p class="text-xs text-slate-500">Total Bayar</p>
+                  <p class="text-sm font-black text-green-400">Rp {{ parseFloat(b.total_price).toLocaleString('id-ID') }}</p>
+                </div>
+                <div class="flex items-center gap-2 mt-1">
+                  <!-- Status Badge -->
+                  <span 
+                    :class="{
+                      'bg-green-950/60 border-green-800 text-green-400': b.status === 'Confirmed',
+                      'bg-amber-950/60 border-amber-800 text-amber-400': b.status === 'Pending',
+                      'bg-red-950/60 border-red-800 text-red-400': b.status === 'Cancelled'
+                    }"
+                    class="border px-2 py-0.5 rounded text-[10px] uppercase font-bold"
+                  >
+                    {{ b.status }}
+                  </span>
+                  
+                  <!-- Lihat Nota Button -->
+                  <button 
+                    @click="showReceiptFromHistory(b)" 
+                    class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-1 rounded transition-all cursor-pointer"
+                  >
+                    Lihat Nota
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t border-slate-800 pt-4 flex justify-end">
+            <button @click="showHistoryModal = false" class="bg-red-600 hover:bg-red-700 text-white font-bold text-sm px-5 py-2 rounded-lg transition-all">
+              Tutup
+            </button>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </template>
@@ -357,6 +446,11 @@ export default {
     const showReceiptModal = ref(false);
     const receiptData = ref(null);
 
+    const showHistoryModal = ref(false);
+    const historyLoading = ref(false);
+    const bookings = ref([]);
+    const payments = ref([]);
+
     const fetchSchedules = async () => {
       schedulesLoading.value = true;
       try {
@@ -446,6 +540,57 @@ export default {
       window.print();
     };
 
+    const fetchHistoryData = async () => {
+      historyLoading.value = true;
+      try {
+        const [bookingsRes, paymentsRes] = await Promise.all([
+          api.get('/api/bookings'),
+          api.get('/api/payments')
+        ]);
+        bookings.value = bookingsRes.data;
+        payments.value = paymentsRes.data;
+      } catch (error) {
+        console.error('Error fetching history data:', error);
+      } finally {
+        historyLoading.value = false;
+      }
+    };
+
+    const openHistoryModal = () => {
+      showHistoryModal.value = true;
+      fetchHistoryData();
+    };
+
+    const userBookings = computed(() => {
+      const userId = currentUser.value?.user_id || 1;
+      return bookings.value
+        .filter(b => b.user_id === userId)
+        .sort((a, b) => b.booking_id - a.booking_id);
+    });
+
+    const showReceiptFromHistory = (b) => {
+      // populate receiptData
+      receiptData.value = {
+        bookingId: b.booking_id,
+        dateTime: new Date(b.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }),
+        title: b.schedule?.film?.title || 'Film',
+        posterUrl: b.schedule?.film?.poster_url,
+        studio: b.schedule?.studio || 'Studio 1',
+        showTime: b.schedule?.show_time || '',
+        seatCount: b.seat_count,
+        paymentMethod: 'Online Payment',
+        totalPrice: parseFloat(b.total_price)
+      };
+      
+      const payment = payments.value.find(p => p.booking_id === b.booking_id);
+      if (payment) {
+        receiptData.value.paymentMethod = payment.payment_method;
+      }
+
+      showHistoryModal.value = false;
+      showReceiptModal.value = true;
+    };
+
     const filteredFilms = computed(() => {
       return films.value.filter(film => {
         const matchQuery = film.title.toLowerCase().includes(searchQuery.value.toLowerCase());
@@ -489,7 +634,12 @@ export default {
       processBooking,
       showReceiptModal,
       receiptData,
-      printReceipt
+      printReceipt,
+      showHistoryModal,
+      historyLoading,
+      openHistoryModal,
+      userBookings,
+      showReceiptFromHistory
     };
   },
 };
