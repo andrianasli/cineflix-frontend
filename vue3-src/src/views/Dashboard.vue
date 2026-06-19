@@ -325,8 +325,8 @@
                 <img :src="receiptData.posterUrl || 'https://images.unsplash.com/photo-1542204111-374baa1445b0?w=500'" class="w-12 h-16 object-cover rounded border border-slate-800" />
                 <div>
                   <h4 class="font-bold text-sm text-white line-clamp-1">{{ receiptData.title }}</h4>
-                  <p class="text-xs text-slate-400">{{ receiptData.studio }}</p>
-                  <p class="text-xs text-slate-400 font-mono">{{ receiptData.showTime }}</p>
+                  <p class="text-xs text-slate-400">{{ receiptData.studio }} | Durasi: {{ receiptData.duration }} Mins</p>
+                  <p class="text-xs text-slate-400 font-mono">{{ receiptData.showTime }} | Rating: ★ {{ receiptData.rating }}</p>
                 </div>
               </div>
             </div>
@@ -405,8 +405,8 @@
                 />
                 <div>
                   <h4 class="font-bold text-sm text-white">{{ b.schedule?.film?.title || 'Film Terhapus' }}</h4>
-                  <p class="text-xs text-slate-400 mt-0.5">{{ b.schedule?.studio || 'Studio' }} | {{ b.seat_count }} Kursi</p>
-                  <p class="text-[10px] text-slate-500 font-mono mt-1">Waktu: {{ b.schedule?.show_time || '-' }}</p>
+                  <p class="text-xs text-slate-400 mt-0.5">{{ b.schedule?.studio || 'Studio' }} | {{ b.seat_count }} Kursi | Durasi: {{ b.schedule?.film?.duration || 120 }} Mins</p>
+                  <p class="text-[10px] text-slate-500 font-mono mt-1">Waktu: {{ b.schedule?.show_time || '-' }} | Rating: ★ {{ b.schedule?.film?.rating || '8.5' }}</p>
                 </div>
               </div>
 
@@ -690,7 +690,9 @@ export default {
           showTime: selectedSch ? selectedSch.show_time : '',
           seatCount: seatCount.value,
           paymentMethod: paymentMethod.value,
-          totalPrice: total
+          totalPrice: total,
+          duration: bookingFilm.value.duration || 120,
+          rating: bookingFilm.value.rating || '8.5'
         };
 
         showReceiptModal.value = true;
@@ -746,7 +748,9 @@ export default {
         showTime: b.schedule?.show_time || '',
         seatCount: b.seat_count,
         paymentMethod: 'Online Payment',
-        totalPrice: parseFloat(b.total_price)
+        totalPrice: parseFloat(b.total_price),
+        duration: b.schedule?.film?.duration || 120,
+        rating: b.schedule?.film?.rating || '8.5'
       };
       
       const payment = payments.value.find(p => p.booking_id === b.booking_id);
