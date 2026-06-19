@@ -5,7 +5,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <div class="flex items-center">
-            <span class="text-2xl font-black tracking-wider text-red-500 uppercase">CineTix</span>
+            <span class="text-2xl font-black tracking-wider text-red-500 uppercase">NetFlix</span>
             <div class="hidden md:block ml-10 flex items-baseline space-x-4">
               <span class="px-3 py-2 rounded-md text-sm font-medium bg-red-600 text-white">Film Sedang Tayang</span>
               <button 
