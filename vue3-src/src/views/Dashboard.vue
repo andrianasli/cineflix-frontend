@@ -51,8 +51,79 @@
             >
               Keluar
             </button>
+
+            <!-- Mobile Menu Button -->
+            <div class="flex md:hidden items-center">
+              <button 
+                @click="showMobileMenu = !showMobileMenu" 
+                class="inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 focus:outline-none transition-colors cursor-pointer"
+              >
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path 
+                    v-if="showMobileMenu" 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M6 18L18 6M6 6l12 12" 
+                  />
+                  <path 
+                    v-else 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M4 6h16M4 12h16M4 18h16" 
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
+      </div>
+
+      <!-- Mobile Menu Dropdown -->
+      <div v-show="showMobileMenu" class="md:hidden border-t border-slate-800 bg-slate-900 px-2 pt-2 pb-4 space-y-1">
+        <!-- Profile Info (Mobile) -->
+        <div class="px-3 py-2 border-b border-slate-800 mb-2">
+          <div class="flex items-center gap-2">
+            <p class="text-sm font-bold text-slate-200">{{ currentUser?.username }}</p>
+            <span 
+              v-if="currentUser?.role !== 'admin'"
+              :class="{
+                'bg-slate-800 text-slate-300 border-slate-700': currentUser?.member_tier === 'Silver',
+                'bg-yellow-950/40 text-yellow-400 border-yellow-800/80': currentUser?.member_tier === 'Gold',
+                'bg-cyan-950/40 text-cyan-400 border-cyan-800/80': currentUser?.member_tier === 'Platinum'
+              }"
+              class="border text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider"
+            >
+              {{ currentUser?.member_tier || 'Silver' }}
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 capitalize">{{ currentUser?.role || 'User' }}</p>
+        </div>
+
+        <span class="block px-3 py-2 rounded-md text-sm font-medium bg-red-600 text-white">Film Sedang Tayang</span>
+        
+        <button 
+          @click="openHistoryModalMobile" 
+          class="w-full text-left block px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+        >
+          Riwayat Transaksi
+        </button>
+        
+        <button 
+          @click="openSaranModalMobile" 
+          class="w-full text-left block px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+        >
+          Beri Saran
+        </button>
+        
+        <router-link 
+          v-if="currentUser?.role === 'admin'" 
+          to="/films-crud" 
+          class="block px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+        >
+          Kelola Film (Admin)
+        </router-link>
       </div>
     </nav>
 
@@ -540,6 +611,8 @@ export default {
     const saranContent = ref('');
     const saranSubmitting = ref(false);
 
+    const showMobileMenu = ref(false);
+
     const showRateModal = ref(false);
     const rateStars = ref(5);
     const rateComment = ref('');
@@ -708,6 +781,16 @@ export default {
       showRateModal.value = false;
     };
 
+    const openHistoryModalMobile = () => {
+      showMobileMenu.value = false;
+      openHistoryModal();
+    };
+
+    const openSaranModalMobile = () => {
+      showMobileMenu.value = false;
+      showSaranModal.value = true;
+    };
+
     const filteredFilms = computed(() => {
       return films.value.filter(film => {
         const matchQuery = film.title.toLowerCase().includes(searchQuery.value.toLowerCase());
@@ -767,7 +850,10 @@ export default {
       rateFilmTitle,
       submitSaran,
       openRateModal,
-      submitRating
+      submitRating,
+      showMobileMenu,
+      openHistoryModalMobile,
+      openSaranModalMobile
     };
   },
 };
